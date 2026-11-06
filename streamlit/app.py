@@ -879,32 +879,419 @@ else:
     <div class="hero-card" style="direction: rtl; text-align: right;">
         <h1 style="color: #38BDF8; margin: 0; font-weight: 800;">💬 NLP & Customer Sentiment Analysis</h1>
         <p style="color: #CBD5E1; font-size: 1.1rem; margin-top: 8px;">
-        تحلیل متنی نظرات خریداران، ارزیابی رضایت از گارانتی، بررسی سوگیری داده‌ها و مدل‌سازی توالی با HMM
+        تحلیل متنی نظرات خریداران، ارزیابی رضایت از گارانتی، مدل‌سازی احساس با RoBERTa و توالی با HMM
         </p>
     </div>
     """, unsafe_allow_html=True)
 
-    st.markdown("""
-    <div class="glass-card" style="direction: rtl; text-align: right;">
-        <h4 style="color: #38BDF8; margin-top: 0;">💡 NLP Analysis Scenario & Objectives</h4>
-        در این بخش، نظرات متنی خریداران درباره محصولات مختلف پردازش شده است تا تأثیر تجربه گارانتی بر روی امتیاز کلی محصول مشخص گردد،
-        سوگیری داده‌ها تحلیل شود، و محصولات قطبی‌شده شناسایی شوند. همچنین مدل‌سازی توالی متن با استفاده از مدل پنهان مارکوف (HMM) به‌عنوان بخش امتیازی انجام شده است.
-    </div>
-    """, unsafe_allow_html=True)
-
-    # ---------- tabs ----------
+    # ---------- 5 tabs ----------
     nlp_tab1, nlp_tab2, nlp_tab3, nlp_tab4 = st.tabs([
-        "⚖️ 1. Data Balance & Undersampling",
-        "📏 2. Exploratory Text Analysis",
-        "🔗 3. HMM Sequence Modeling (Bonus)",
-        "📊 4. Product & Rating Insights"
+        "📊 1. EDA",
+        "⭐ 2. Warranty Satisfaction",
+        "🤖 3. Sentiment Model",
+        "🔗 4. HMM Sequence Modeling"
     ])
 
-    # ==========================================
-    # TAB 1: DATA BALANCE
+       # ==========================================
+    # TAB 1: EDA — Exploratory Data Analysis (6 Questions)
     # ==========================================
     with nlp_tab1:
-        st.markdown("<h2 style='text-align: right; color: #F59E0B;'>⚖️ Class Imbalance & Random Undersampling</h2>", unsafe_allow_html=True)
+        st.markdown("<h2 style='text-align: right; color: #38BDF8;'>📊 Exploratory Data Analysis</h2>", unsafe_allow_html=True)
+
+        st.markdown("""
+        <div class="hero-card" style="direction: rtl; text-align: right;">
+            <p style="font-size: 1.02rem; line-height: 1.9;">
+            وقتی پروژه را شروع کردیم، قبل از اینکه سراغ ساخت مدل برویم، باید به یک سؤال اساسی جواب می‌دادیم:
+            داده‌های ما چه ویژگی‌هایی دارند و چه چیزهایی ممکن است مدل را به اشتباه بیندازد؟
+            برای همین، تحلیل اکتشافی را در شش بخش انجام دادیم؛
+            از توزیع امتیازها تا محتوای نظرها، رفتار کاربران و مقایسه‌ی محصولات و برندها.
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
+
+        st.markdown("### 🔍 Step 0: Data Overview & Product Table Join")
+        st.markdown("""
+        <div class="glass-card" style="direction: rtl; text-align: right;">
+            <p style="font-size: 1rem; line-height: 1.9;">
+            داده‌ی اصلی ما شامل <b>۸۳۸ هزار و ۹۴۴ نظر</b> و <b>۱۱ ستون</b> بود.
+            برای اضافه‌کردن عنوان و برند محصولات، جدول اطلاعات محصول را با شناسه‌ی <code>asin</code> به نظرات متصل کردیم.
+            </p>
+            <p style="font-size: 1rem; line-height: 1.9;">
+            یک نکته‌ی مهم پیدا کردیم: جدول محصول، <b>۳۰ هزار و ۳۶۸ ردیف با شناسه‌ی تکراری</b> داشت و اتصال مستقیم،
+            تعداد نظرات را به‌اشتباه افزایش می‌داد. بنابراین برای هر شناسه، اولین ردیف را نگه داشتیم
+            و بررسی کردیم که بعد از اتصال، تعداد نظرات همان مقدار اولیه باقی بماند.
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
+
+        st.markdown("---")
+
+        st.markdown("### ❓ Question 1: آیا امتیازهای ۱ تا ۵ توزیع متوازنی دارند؟")
+        st.markdown("""
+        <div class="danger-card" style="direction: rtl; text-align: right;">
+            <p style="font-size: 1rem; line-height: 1.9;">
+            نمودار نشان داد که <b>نه</b>؛ بیش از <b>۴۶۱ هزار نظر</b> پنج‌ستاره بودند، یعنی حدود <b>۵۵ درصد</b> کل داده‌ها.
+            در مقابل، امتیاز دو فقط حدود <b>۵۷ هزار نمونه</b> داشت.
+            بنابراین مدل از ابتدا با تعداد بسیار بیشتری نمونه‌ی پنج‌ستاره روبه‌رو می‌شد.
+            </p>
+            <p style="font-size: 1rem; line-height: 1.9;">
+            در این بخش، نامتوازن‌بودن داده‌ها را شناسایی کردیم؛ <b>خودِ متوازن‌سازی در این نوت‌بوک اجرا نشده است.</b>
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
+
+        show_nlp_single('eda1.png', 'Q1: Rating Distribution — Highly Imbalanced Dataset')
+
+        st.markdown("---")
+
+        st.markdown("### ❓ Question 2: کاربران در نظرات مثبت، خنثی و منفی بیشتر درباره‌ی چه چیزهایی صحبت می‌کنند؟")
+        st.markdown("""
+        <div class="glass-card" style="direction: rtl; text-align: right;">
+            <p style="font-size: 1rem; line-height: 1.9;">
+            امتیازهای ۴ و ۵ را مثبت، ۳ را خنثی و ۱ و ۲ را منفی در نظر گرفتیم.
+            از هر دسته، <b>۲۰ هزار نظر تصادفی</b> برداشتیم و ابر کلمات ساختیم.
+            علاوه بر کلمات زائد استاندارد، کلمات عمومی مثل <code>product</code> و <code>amazon</code> را هم کنار گذاشتیم؛
+            ولی کلمات نفی مثل <code>not</code> و <code>no</code> را حفظ کردیم.
+            </p>
+            <p style="font-size: 1rem; line-height: 1.9;">
+            در نظرات مثبت، کلماتی مثل <b>great</b>، <b>good</b>، <b>love</b> و <b>easy</b> برجسته بودند.
+            در منفی‌ها، کلماتی مثل <b>problem</b>، <b>return</b>، <b>tried</b> و <b>work</b> دیده می‌شدند.
+            دسته‌ی خنثی هم ترکیبی از واژه‌های مثبت و منفی داشت.
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
+
+        show_nlp_single('eda2.png', 'Q2: Word Clouds — Positive / Neutral / Negative Reviews')
+
+        st.markdown("""
+        <div class="warning-card" style="direction: rtl; text-align: right;">
+            <h4 style="margin-top: 0;">💡 Key Insight: Word Overlap</h4>
+            <p style="font-size: 1rem; line-height: 1.9;">
+            نکته‌ی جالب این بود که بین <b>۵۰ واژه‌ی اول مثبت و منفی، ۳۲ واژه مشترک</b> بود.
+            پس صرفِ دیدن یک کلمه برای تشخیص احساس کافی نیست؛ مثلاً <code>good</code> در ترکیب <code>not good</code>
+            معنای متفاوتی پیدا می‌کند. این نتیجه، اهمیت حفظ کلمات نفی و توجه به بافت جمله را برای ادامه‌ی پروژه روشن کرد.
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
+
+        st.markdown("---")
+
+        st.markdown("### ❓ Question 3: کاربرانی که نظراتشان بیشترین رأی مفیدبودن را گرفته‌اند")
+        st.markdown("""
+        <div class="glass-card" style="direction: rtl; text-align: right;">
+            <p style="font-size: 1rem; line-height: 1.9;">
+            ستون <code>vote</code> را عددی کردیم، کاماها را برداشتیم و مقادیر خالی یا نامعتبر را صفر گذاشتیم.
+            بعد مجموع رأی‌ها را بر اساس شناسه‌ی هر کاربر حساب کردیم تا تفاوت اسم‌ها باعث تقسیم‌شدن رأی‌های یک نفر نشود.
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
+
+        top_reviewers_df = pd.DataFrame({
+            'Rank': ['#1', '#2', '#3', '...', '#10'],
+            'Reviewer': ['Benson Leung', 'Voltron00x', 'Obi Wan', '...', 'Mark A. Baker'],
+            'Total Votes': [4572, 3181, 3150, '...', 1820],
+            'Note': ['روی ۲۹ نظر', '—', '—', '—', 'فقط یک نظر']
+        })
+        st.dataframe(top_reviewers_df, use_container_width=True, hide_index=True)
+
+        st.markdown("""
+        <div class="warning-card" style="direction: rtl; text-align: right;">
+            <p style="font-size: 1rem; line-height: 1.9;">
+            <b>📌 نکته:</b> نفر دهم، <b>Mark A. Baker</b>، با <b>فقط یک نظر</b> ۱۸۲۰ رأی گرفته بود؛
+            پس <b>تعداد نظر بیشتر، لزوماً به معنی رأی مفیدبودن بیشتر نیست.</b>
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
+
+        st.markdown("---")
+
+        st.markdown("### ❓ Question 4: طول متن نظرات بر حسب تعداد کاراکتر")
+        st.markdown("""
+        <div class="glass-card" style="direction: rtl; text-align: right;">
+            <p style="font-size: 1rem; line-height: 1.9;">
+            دو هیستوگرام با <b>۱۰۰ بازه</b> رسم کردیم؛ یکی برای تمام متن‌ها و یکی برای فاصله‌ی صدک اول تا نودونهم،
+            یعنی <b>۲۰۲ تا ۳۳۹۹ کاراکتر</b>. توزیع به‌شدت راست‌چوله بود:
+            میانه‌ی طول متن <b>۴۰۸ کاراکتر</b> بود و <b>۹۰ درصد</b> نظرها حداکثر <b>۱۲۱۷ کاراکتر</b> داشتند.
+            </p>
+            <p style="font-size: 1rem; line-height: 1.9;">
+            فیلترکردن، شکل بخش اصلی توزیع را خواناتر کرد. پیشنهاد ثبت‌شده برای مدل‌سازی، بررسی همین محدوده
+            یا کوتاه‌کردن ورودی ترنسفورمر در حدود <b>۲۵۶ تا ۵۱۲ توکن</b> بود؛ اینجا توکن با کاراکتر تفاوت دارد.
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
+
+        show_nlp_single('eda3.png', 'Q4: Review Length Distribution — Raw vs Filtered (P1–P99)')
+
+        st.markdown("---")
+
+        st.markdown("### ❓ Question 5: محصولاتی که بیشترین تعداد نظر ۵ ستاره را دارند")
+        st.markdown("""
+        <div class="glass-card" style="direction: rtl; text-align: right;">
+            <p style="font-size: 1rem; line-height: 1.9;">
+            فقط نظرهای پنج‌ستاره را انتخاب و بر اساس شناسه‌ی محصول شمارش کردیم.
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
+
+        top_products_5star = pd.DataFrame({
+            'Rank': ['#1', '#2', '#3'],
+            'Product': ['OontZ Angle 3 Speaker', 'NETGEAR WiFi Amplifier', 'Roku Streaming Stick'],
+            'Brand': ['Cambridge Soundworks', 'NETGEAR', 'Roku'],
+            '5-Star Reviews': [1163, 659, 600]
+        })
+        st.dataframe(top_products_5star, use_container_width=True, hide_index=True)
+
+        st.markdown("""
+        <div class="warning-card" style="direction: rtl; text-align: right;">
+            <p style="font-size: 1rem; line-height: 1.9;">
+            <b>📌 نکته مهم:</b> این رتبه‌بندی، <b>تعداد</b> نظر پنج‌ستاره را نشان می‌دهد؛
+            برای نتیجه‌گیری درباره‌ی <b>نسبت رضایت</b>، به تعداد کل نظرات هر محصول هم نیاز داریم.
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
+
+        st.markdown("---")
+
+        st.markdown("### ❓ Question 6: مقایسه‌ی برندها — تعداد نظر و میانگین امتیاز")
+        st.markdown("""
+        <div class="glass-card" style="direction: rtl; text-align: right;">
+            <p style="font-size: 1rem; line-height: 1.9;">
+            ابتدا ده برند با بیشترین تعداد نظر را انتخاب کردیم و بعد همان ده برند را بر اساس میانگین امتیاز مرتب کردیم.
+            <b>۱۲۳۱ نظر بدون برند</b> (حدود ۰.۱۵ درصد داده‌ها) وارد این مقایسه نشدند.
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
+
+        brand_df = pd.DataFrame({
+            'Brand': ['Logitech', 'Anker', 'AmazonBasics', 'NETGEAR'],
+            'Review Count': [16993, '—', '—', '—'],
+            'Avg Rating': ['—', 4.244, 4.201, 3.810],
+            'Note': ['بیشترین تعداد نظر', 'بالاترین میانگین امتیاز', 'دوم', 'پایین‌ترین میانگین بین ۱۰ برند']
+        })
+        st.dataframe(brand_df, use_container_width=True, hide_index=True)
+
+        show_nlp_single('eda4.png', 'Q6: Top 10 Brands — Review Count vs Average Rating')
+
+        st.markdown("---")
+
+        st.markdown("""
+        <div class="glass-card" style="direction: rtl; text-align: right; border: 2px solid #38BDF8;">
+            <h4 style="color: #38BDF8; margin-top: 0;">📌 Takeaways from EDA</h4>
+            <p style="font-size: 1rem; line-height: 1.9;">
+            این تحلیل به ما نشان داد که برای ادامه‌ی پروژه باید:
+            </p>
+            <ul style="font-size: 0.98rem; line-height: 1.9;">
+                <li>عدم توازن امتیازها را جدی بگیریم.</li>
+                <li>معنای جمله و کلمات نفی را حفظ کنیم.</li>
+                <li>طول ورودی‌ها را مدیریت کنیم.</li>
+                <li>موقع تفسیر رتبه‌بندی‌ها، تفاوت تعداد نظر و میانگین امتیاز را در نظر داشته باشیم.</li>
+            </ul>
+        </div>
+        """, unsafe_allow_html=True)
+
+    # ==========================================
+    # TAB 2: WARRANTY SATISFACTION
+    # ==========================================
+    with nlp_tab2:
+        st.markdown("<h2 style='text-align: right; color: #10B981;'>⭐ Warranty Satisfaction Analysis</h2>", unsafe_allow_html=True)
+
+        # --- Section 1: Average Rating Comparison (n1) ---
+        st.markdown("### 📊 Chart 1: Average Rating — All Reviews vs Warranty Reviews")
+        st.markdown("""
+        <div class="glass-card" style="direction: rtl; text-align: right;">
+            <p style="font-size: 1rem; line-height: 1.9;">
+            نتایج تحلیل میانگین امتیازها نشان می‌دهد که رضایت کلی کاربران از محصولات آمازون در سطح بالاتری نسبت به تجربه آن‌ها از خدمات گارانتی قرار دارد.
+            </p>
+            <p style="font-size: 1rem; line-height: 1.9;">
+            میانگین امتیاز تمامی نظرات برابر با <b>۴.۰۲ از ۵</b> است؛ درحالی‌که میانگین امتیاز نظرات مرتبط با گارانتی تنها <b>۳.۲۰ از ۵</b> را نشان می‌دهد.
+            </p>
+            <p style="font-size: 1rem; line-height: 1.9;">
+            این اختلاف <b>۰.۸۲ امتیازی</b> بیانگر آن است که تجربه مشتریان از گارانتی به اندازه تجربه کلی آن‌ها از محصولات رضایت‌بخش نیست.
+            به عبارت دیگر، ممکن است کاربران از کیفیت و عملکرد محصول رضایت داشته باشند، اما در زمینه خدمات گارانتی و پشتیبانی با تجربه ضعیف‌تری مواجه شوند.
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
+        show_nlp_single('n1.png', 'Chart 1: Average Rating Comparison — Key Insight')
+
+
+        # --- Section 3: Rating Distribution (n2) ---
+        st.markdown("### ⭐ Chart 2: Rating Distribution in Warranty Reviews")
+        st.markdown("""
+        <div class="glass-card" style="direction: rtl; text-align: right;">
+            <p style="font-size: 1rem; line-height: 1.9;">
+            بررسی توزیع امتیاز نظرات مرتبط با گارانتی نشان می‌دهد که بیشترین فراوانی مربوط به امتیاز ۵ با سهم <b>۳۷.۲ درصد</b> است که بیانگر تجربه مثبت بخش قابل‌توجهی از کاربران است.
+            </p>
+            <p style="font-size: 1rem; line-height: 1.9;">
+            در مقابل، امتیاز ۱ با سهم <b>۲۸.۳ درصد</b> در جایگاه دوم قرار دارد و نشان‌دهنده وجود نارضایتی شدید در میان گروهی از مشتریان است.
+            </p>
+            <p style="font-size: 1rem; line-height: 1.9;">
+            نکته قابل‌توجه، فاصله نسبتاً زیاد میان امتیازهای ابتدا و انتهای طیف و سهم کمتر امتیازهای میانی است.
+            این الگو می‌تواند نشان‌دهنده تفاوت چشمگیر تجربه کاربران در مواجهه با خدمات گارانتی باشد؛
+            به‌طوری‌که برخی کاربران تجربه‌ای کاملاً رضایت‌بخش و برخی دیگر تجربه‌ای نامطلوب داشته‌اند.
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
+        show_nlp_single('n2.png', 'Chart 2: Rating Distribution — Key Insight')
+
+        st.markdown("---")
+
+        # --- Section 4: Scatter Dispersion (n3) ---
+        st.markdown("### 📉 Chart 3: Dispersion vs Review Volume")
+        st.markdown("""
+        <div class="glass-card" style="direction: rtl; text-align: right;">
+            <p style="font-size: 1rem; line-height: 1.9;">
+            این نمودار پراکندگی، ارتباط میان تعداد نظرات ثبت‌شده برای محصولات و میانگین امتیاز نظرات مرتبط با گارانتی را نمایش می‌دهد.
+            </p>
+            <p style="font-size: 1rem; line-height: 1.9;">
+            بررسی پراکندگی داده‌ها نشان می‌دهد که امتیازهای گارانتی در تعداد نظرات مختلف، دامنه گسترده‌ای از ۱ تا ۵ را پوشش می‌دهند.
+            به‌عبارت دیگر، حتی محصولاتی با تعداد نظرات مشابه نیز می‌توانند تجربه‌های متفاوتی از نظر رضایت مشتریان داشته باشند.
+            </p>
+            <p style="font-size: 1rem; line-height: 1.9;">
+            همچنین با افزایش تعداد نظرات، نقاط همچنان در سطوح مختلف امتیازی پراکنده هستند و روند صعودی یا نزولی مشخصی مشاهده نمی‌شود.
+            این موضوع نشان می‌دهد که تعداد نظرات به‌تنهایی شاخص مناسبی برای پیش‌بینی رضایت مشتریان از گارانتی نیست.
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
+        show_nlp_single('n3.png', 'Chart 3: Dispersion — Key Insight')
+
+        # ==========================================
+    # TAB 3: SENTIMENT MODEL — RoBERTa-large
+    # ==========================================
+    with nlp_tab3:
+        st.markdown("<h2 style='text-align: right; color: #38BDF8;'>🤖 Sentiment Analysis — RoBERTa-large</h2>", unsafe_allow_html=True)
+
+        st.markdown("### 🎯 Goal & Problem Statement")
+        st.markdown("""
+        <div class="glass-card" style="direction: rtl; text-align: right;">
+            <p style="font-size: 1rem; line-height: 1.9;">
+            در فاز دوم پروژه، تمرکز روی پیش‌بینی پیوسته و ترتیبی امتیاز نظرات آمازون (۱ تا ۵ ستاره) از روی متن قرار گرفت.
+            داده‌های اولیه شامل <b>۸۳۸,۹۴۴ رکورد آموزشی</b> و کاتالوگ محصولات با بیش از ۷۵۰ هزار سطر یکتا بود.
+            چالش اصلی، جداسازی ظریف احساسات در کلاس‌های میانی (۲، ۳ و ۴) و کنترل عدم تعادل شدید میان کلاس‌ها بود.
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
+
+        st.markdown("---")
+
+        st.markdown("### 🛡️ Data Preparation & Leakage Guard")
+        st.markdown("""
+        <div class="glass-card" style="direction: rtl; text-align: right;">
+            <p style="font-size: 1rem; line-height: 1.9;">
+            برای اطمینان از سلامت سنجش، ابتدا یک مجموعه ارزیابی (Validation) کاملاً متوازن شامل <b>۳۰,۰۰۰ سطر</b>
+            (دقیقاً ۶,۰۰۰ نمونه برای هر کدام از ۵ کلاس) جدا شد.
+            سپس <b>۲,۵۲۸ نمونه هم‌پوشان</b> با مجموعه ارزیابی و <b>۲۷,۸۷۲ نقد تکراری</b> از داده‌های آموزش حذف شدند
+            تا یک استخر آموزشی ایزوله با <b>۷۷۸,۵۴۴ سطر خالص</b> تشکیل شود.
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
+
+        st.markdown("---")
+
+        st.markdown("### 🧹 Minimal Cleaning Preprocessing")
+        st.markdown("""
+        <div class="safe-card" style="direction: rtl; text-align: right;">
+            <p style="font-size: 1rem; line-height: 1.9;">
+            به جای پیش‌پردازش‌های سنتی که لحن و شدت احساسات را از بین می‌برند، رویکرد <b>پاک‌سازی حداقلی</b> اعمال شد:
+            </p>
+            <ul style="font-size: 0.98rem; line-height: 1.9;">
+                <li>پاک‌سازی صرفاً به حذف تگ‌های HTML، آدرس‌های وب (URLs) و فاصله‌های مازاد محدود شد.</li>
+                <li>حروف بزرگ، علائم نگارشی و ساختار جملات حفظ شدند تا شدت هیجان و خشم در نقد باقی بماند.</li>
+                <li>ایموجی‌ها حذف نشدند و به صورت کاراکترهای خام یونیکد (Raw Unicode) به توکنایزر <b>Byte-Level BPE</b> داده شدند تا در سطح بایت به عنوان سیگنال احساسی عمل کنند.</li>
+                <li>ورودی مدل با قالب استاندارد <code>Summary: {summary} | Review: {review}</code> ترکیب شد و نام برند برای جلوگیری از اضافه شدن نویز آماری کنار گذاشته شد.</li>
+            </ul>
+        </div>
+        """, unsafe_allow_html=True)
+
+        st.markdown("---")
+
+        st.markdown("### 🔄 Rotating Balanced Sampler")
+        st.markdown("""
+        <div class="glass-card" style="direction: rtl; text-align: right;">
+            <p style="font-size: 1rem; line-height: 1.9;">
+            به دلیل عدم تعادل شدید در داده‌ها (کلاس ۵ دارای بیش از ۴۳۸ هزار و کلاس ۲ دارای حدود ۴۸ هزار سطر)،
+            استفاده از روش‌های مرسوم حذف داده باعث از دست رفتن تنوع و کاهش تعمیم‌پذیری می‌شد.
+            با پیاده‌سازی نمونه‌بردار چرخشی، در هر اپوک <b>۱۰,۰۰۰ نمونه متوازن از هر کلاس</b>
+            (مجموعاً ۵۰,۰۰۰ داده در هر اپوک) به مدل تزریق شد.
+            به این ترتیب بدون سربار حافظه، مدل در طول ۶ اپوک طیف متنوعی از داده‌های هر کلاس را دید.
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
+
+        st.markdown("---")
+
+        st.markdown("### 🏗️ RoBERTa-large & Custom Loss")
+        st.markdown("""
+        <div class="bonus-card" style="direction: rtl; text-align: right;">
+            <p style="font-size: 1rem; line-height: 1.9;">
+            با بررسی مدل‌های پایه نظیر <b>DistilBERT</b> (دقت ۶۵٪) و <b>DeBERTa-base</b> (دقت ۶۷٪)،
+            مدل <b>RoBERTa-large</b> انتخاب شد. معماری و استراتژی آموزش:
+            </p>
+            <ul style="font-size: 0.98rem; line-height: 1.9;">
+                <li><b>استخراج ویژگی:</b> استفاده از مکانیزم Masked Mean Pooling روی آخرین لایه ترنسفورمر، به همراه LayerNorm و Dropout برابر با ۰.۱.</li>
+                <li><b>تابع زیان ترتیبی (Custom Loss):</b> به دلیل ترتیبی بودن نمرات، تابعی ترکیبی با وزن‌های مشخص به کار رفت:
+                    <br><code>Loss = 0.70 × CrossEntropy (Label Smoothing 0.1) + 0.15 × Ordinal BCE + 0.15 × Smooth L1</code>
+                    <br>این ترکیب تضمین کرد که خطاهای فاصله دور (مثل پیش‌بینی نمره ۱ به جای ۵) به مراتب جریمه سنگین‌تری نسبت به خطاهای همسایه دریافت کنند.
+                </li>
+                <li><b>تنظیمات آموزش:</b> نرخ یادگیری با روش Layer-wise LR Decay (ضریب ۰.۹۵)، نرخ پایه ۲e-۵ برای ستون فقرات مدل، و اندازه دسته موثر ۳۲ با Gradient Accumulation.</li>
+            </ul>
+        </div>
+        """, unsafe_allow_html=True)
+
+        st.markdown("---")
+
+        st.markdown("### 📊 Results & Confusion Matrix Analysis")
+        st.markdown("""
+        <div class="glass-card" style="direction: rtl; text-align: right;">
+            <p style="font-size: 1rem; line-height: 1.9;">
+            مدل به دقت کلی <b>۷۰٪</b> روی داده‌های ارزیابی متوازن دست یافت:
+            </p>
+            <ul style="font-size: 0.98rem; line-height: 1.9;">
+                <li>بیشترین دقت مربوط به نقاط انتهایی طیف بود: کلاس ۵ با <b>۸۶.۹۷٪</b> و کلاس ۱ با <b>۷۷.۵۲٪</b>؛ جایی که بار کلمات احساسی قطعی‌تر است.</li>
+                <li>کلاس‌های میانی بیشترین چالش را داشتند: کلاس ۲ (<b>۵۶.۴۲٪</b>)، کلاس ۳ (<b>۶۳.۰۳٪</b>) و کلاس ۴ (<b>۶۷.۵۸٪</b>).</li>
+                <li>تحلیل خطاها نشان داد که انحراف مدل کاملاً ماهیت همسایگی دارد؛ عمده خطاها بین کلاس‌های مجاور (مانند اشتباه کلاس ۴ با ۵ یا ۲ با ۱) رخ داده و خطای شدید میان دو قطب احساسی به صفر نزدیک بوده است.</li>
+            </ul>
+        </div>
+        """, unsafe_allow_html=True)
+
+        show_nlp_single('new_nlp1.jpg', 'RoBERTa-large Model Results Overview')
+
+        st.markdown("---")
+
+        st.markdown("### 🔍 Future Direction: Aspect Detection with DistilBERT")
+        st.markdown("""
+        <div class="warning-card" style="direction: rtl; text-align: right;">
+            <h4 style="margin-top: 0;">💡 یک ایده‌ی جدید برای آینده</h4>
+            <p style="font-size: 1rem; line-height: 1.9;">
+            فرض کنید می‌خواهید محصولی بخرید و بین هزاران نظر، دنبال کسی می‌گردید که چند ماه از آن استفاده کرده
+            یا آن را با محصول رقیب مقایسه کرده باشد. امتیاز ستاره‌ای به‌تنهایی این اطلاعات را به ما نمی‌دهد.
+            </p>
+            <p style="font-size: 1rem; line-height: 1.9;">
+            ما می‌خواستیم این جست‌وجو را ساده‌تر کنیم؛ مدلی بسازیم که تشخیص دهد نویسنده نظر سؤال می‌پرسد،
+            خرید یا نخریدن را توصیه می‌کند، محصول را با رقبا مقایسه می‌کند یا تجربه استفاده بلندمدت دارد.
+            </p>
+            <p style="font-size: 1rem; line-height: 1.9;">
+            چون داده‌های ما این برچسب‌ها را نداشتند، ابتدا از <b>Zero-shot</b> برای تولید برچسب‌های اولیه استفاده کردیم
+            و بعد با آن‌ها مدل <b>DistilBERT</b> را آموزش دادیم.
+            نتیجه ارزیابی نسخه اولیه حدود <b>۴۸ درصد</b> بود و نشان داد هنوز جای کار زیادی داریم.
+            </p>
+            <p style="font-size: 1rem; line-height: 1.9;">
+            با توجه به محدودیت زمان بوت‌کمپ، توان پردازشی و کمبود برچسب‌های انسانیِ تأییدشده،
+            تصمیم گرفتیم این پروژه را حتماً بعد از بوت‌کمپ ادامه بدهیم؛
+            با تمرکز بر اصلاح برچسب‌ها و ارزیابی دقیق‌تر، تا خروجی برای تصمیم‌گیری خریداران قابل‌اعتمادتر شود.
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
+
+    # ==========================================
+    # TAB 4: HMM SEQUENCE MODELING
+    # ==========================================
+    with nlp_tab4:
+        st.markdown("<h2 style='text-align: right; color: #C084FC;'>🔗 HMM Sequence Modeling (Bonus)</h2>", unsafe_allow_html=True)
+
+        # ========================================
+        # Part A: Data Preprocessing
+        # ========================================
+        st.markdown("### ⚖️ Step 1: Class Imbalance & Random Undersampling")
 
         st.markdown("""
         <div class="danger-card" style="direction: rtl; text-align: right;">
@@ -926,45 +1313,24 @@ else:
         </div>
         """, unsafe_allow_html=True)
 
-        st.markdown("### 📊 Before vs After — Visual Comparison")
         show_nlp_pair(
-            'nlp_1.png', 'nlp_2.png',
+            'n4.jpg', 'n5.jpg',
             'Before: Imbalanced Distribution',
             'After: Balanced (15,000 per class → 30,000 total)'
         )
 
-        # Quick metric summary
-        c1, c2, c3 = st.columns(3)
-        c1.metric("Original Positive", "~Majority", help="تعداد نظرات مثبت در داده‌ی اولیه")
-        c2.metric("Original Negative", "~Minority", help="تعداد نظرات منفی در داده‌ی اولیه")
-        c3.metric("After Balance", "30,000", delta="15k + 15k")
+        st.markdown("---")
 
-    # ==========================================
-    # TAB 2: EXPLORATORY TEXT ANALYSIS
-    # ==========================================
-    with nlp_tab2:
-        st.markdown("<h2 style='text-align: right; color: #10B981;'>📏 Review Length & Vocabulary Analysis</h2>", unsafe_allow_html=True)
+        # --- Step 2: Review Length ---
+        st.markdown("### 📏 Step 2: Review Length Analysis")
 
         st.markdown("""
         <div class="glass-card" style="direction: rtl; text-align: right;">
-            <h4 style="color: #10B981; margin-top: 0;">📐 Review Length Distribution</h4>
             <p style="font-size: 1rem; line-height: 1.8;">
             در این بخش، طول نظرات کاربران بر اساس تعداد کلمات مورد بررسی قرار گرفته است.
             توزیع طول نظرات نشان می‌دهد که بیشتر کاربران نظرات نسبتاً کوتاهی ثبت کرده‌اند؛
             درحالی‌که تعداد محدودی از نظرات دارای طول بسیار زیادی هستند.
             </p>
-        </div>
-        """, unsafe_allow_html=True)
-
-        show_nlp_pair(
-            'nlp_5.png', 'nlp_6.png',
-            'Word Count Distribution (Histogram)',
-            'Boxplot: Positive vs Negative Review Length'
-        )
-
-        st.markdown("""
-        <div class="glass-card" style="direction: rtl; text-align: right;">
-            <h4 style="color: #10B981; margin-top: 0;">📦 Length Comparison — Boxplot Insight</h4>
             <p style="font-size: 1rem; line-height: 1.8;">
             نمودار جعبه‌ای نیز پراکندگی طول نظرات و مقادیر پرت را در دو گروه مثبت و منفی مقایسه می‌کند.
             این بررسی به شناخت ویژگی‌های متنی داده‌ها و درک بهتر ساختار ورودی مدل کمک می‌کند.
@@ -972,12 +1338,19 @@ else:
         </div>
         """, unsafe_allow_html=True)
 
+        show_nlp_pair(
+            'n6.jpg', 'n7.jpg',
+            'Word Count Distribution (Histogram)',
+            'Boxplot: Positive vs Negative Review Length'
+        )
+
         st.markdown("---")
-        st.markdown("<h2 style='text-align: right; color: #10B981;'>🔤 Top Frequent Words per Class</h2>", unsafe_allow_html=True)
+
+        # --- Step 3: Top Frequent Words ---
+        st.markdown("### 🔤 Step 3: Top Frequent Words per Class")
 
         st.markdown("""
         <div class="glass-card" style="direction: rtl; text-align: right;">
-            <h4 style="color: #10B981; margin-top: 0;">📚 Vocabulary Pattern Analysis</h4>
             <p style="font-size: 1rem; line-height: 1.8;">
             با استخراج پرتکرارترین کلمات در هر یک از کلاس‌های احساسی، الگوی واژگانی نظرات مثبت و منفی بررسی شده است.
             این تحلیل امکان مقایسه واژگان رایج کاربران در بیان تجربه‌های مثبت و منفی را فراهم می‌کند.
@@ -985,18 +1358,17 @@ else:
         </div>
         """, unsafe_allow_html=True)
 
-        show_nlp_single('nlp_7.png', 'Top Frequent Words: Positive vs Negative Sentiment')
+        show_nlp_single('n8.png', 'Top Frequent Words: Positive vs Negative Sentiment')
 
-    # ==========================================
-    # TAB 3: HMM SEQUENCE MODELING (BONUS)
-    # ==========================================
-    with nlp_tab3:
-        st.markdown("<h2 style='text-align: right; color: #C084FC;'>🔗 HMM Sequence Modeling (Bonus Section)</h2>", unsafe_allow_html=True)
+        st.markdown("---")
 
-        # --- HMM transition matrix ---
+        # ========================================
+        # Part B: HMM Model
+        # ========================================
+        st.markdown("### 🔄 Step 4: HMM Transition Matrix")
+
         st.markdown("""
         <div class="bonus-card" style="direction: rtl; text-align: right;">
-            <h3 style="color: #F3E8FF; margin-top: 0;">🔄 HMM Transition Matrix</h3>
             <p style="font-size: 1.02rem; line-height: 1.85;">
             ماتریس انتقال، احتمال جابه‌جایی بین حالت‌های متوالی (States) را در مدل HMM نشان می‌دهد.
             در این پروژه، متن هر نظر به سه حالت متوالی تقسیم شده است که به‌ترتیب بخش ابتدایی، میانی و پایانی متن را نشان می‌دهند.
@@ -1017,8 +1389,8 @@ else:
 
         st.markdown("---")
 
-        # --- Markov property ---
-        st.markdown("<h3 style='text-align: right; color: #C084FC;'>🧩 Markov Property (خاصیت مارکوف)</h3>", unsafe_allow_html=True)
+        # --- Markov Property ---
+        st.markdown("### 🧩 Step 5: Markov Property (خاصیت مارکوف)")
 
         st.markdown("""
         <div class="glass-card" style="direction: rtl; text-align: right; border-right: 4px solid #C084FC;">
@@ -1036,8 +1408,8 @@ else:
 
         st.markdown("---")
 
-        # --- Chain rule ---
-        st.markdown("<h3 style='text-align: right; color: #C084FC;'>⛓️ Chain Rule of Probability (قانون زنجیره‌ای)</h3>", unsafe_allow_html=True)
+        # --- Chain Rule ---
+        st.markdown("### ⛓️ Step 6: Chain Rule of Probability (قانون زنجیره‌ای)")
 
         st.markdown("""
         <div class="glass-card" style="direction: rtl; text-align: right; border-right: 4px solid #C084FC;">
@@ -1054,103 +1426,43 @@ else:
 
         show_nlp_single('nlp_9.png', 'Chain Rule — Joint Probability Factorization')
 
-    # ==========================================
-    # TAB 4: PRODUCT & RATING INSIGHTS (existing charts)
-    # ==========================================
-    with nlp_tab4:
-        st.markdown("<h2 style='text-align: right; color: #38BDF8;'>📊 Product & Rating Analysis</h2>", unsafe_allow_html=True)
+        st.markdown("---")
 
-        col_nlp1, col_nlp2 = st.columns(2)
+        # --- HMM Evaluation ---
+        st.markdown("### 📊 Step 7: HMM Evaluation Results (6,000 Test Samples)")
 
-        with col_nlp1:
-            st.subheader("📊 Chart 1: Average Rating Comparison")
-            df_comp = pd.DataFrame(list(data['nlp_rating_compare'].items()), columns=['Category', 'Average Rating'])
-            fig_c1 = px.bar(
-                df_comp, x='Category', y='Average Rating', text='Average Rating',
-                color='Category', color_discrete_map={'All Reviews (همه نظرات)': '#38BDF8', 'Warranty Reviews (نظرات گارانتی)': '#EF4444'},
-                title="Average Rating: All Reviews vs Warranty Reviews"
-            )
-            fig_c1.update_traces(texttemplate='%{text:.3f}', textposition='outside')
-            fig_c1.update_layout(yaxis_range=[0, 5], paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font_color='white')
-            st.plotly_chart(fig_c1, use_container_width=True)
+        c1, c2 = st.columns(2)
+        c1.metric("Accuracy", "84.53%")
+        c2.metric("Micro F1", "84.53%")
 
-            st.markdown("""
-            <div class="glass-card" style="direction: rtl; text-align: right;">
-                <b>📌 Chart 1 Analysis:</b> میانگین امتیاز کل نظرات (۴.۰۲۱) به شکل معنی‌داری بالاتر از نظرات گارانتی (۳.۱۹۴) است. این امر نشان می‌دهد تجربه‌های گارانتی عمدتاً همراه با نارضایتی ثبت شده‌اند.
-            </div>
-            """, unsafe_allow_html=True)
+        st.markdown("""
+        <div class="bonus-card" style="direction: rtl; text-align: right;">
+            <h4 style="color: #F3E8FF; margin-top: 0;">🎯 HMM Classification Performance</h4>
+            <p style="font-size: 1rem; line-height: 1.85;">
+            مدل HMM روی ۶۰۰۰ نمونه تست به دقت کلی <b>۸۴.۵۳ درصد</b> رسید.
+            Precision و Recall در هر دو کلاس متعادل است (بازه ۰.۸۲ تا ۰.۸۷)،
+            که نشان می‌دهد مدل در تشخیص هر دو کلاس عملکرد یکنواختی دارد.
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
 
-        with col_nlp2:
-            st.subheader("📈 Chart 2: Product Coverage Threshold")
-            df_cov = pd.DataFrame(list(data['nlp_coverage'].items()), columns=['Min Warranty Reviews', 'Product Count'])
-            fig_c2 = px.bar(
-                df_cov, x='Min Warranty Reviews', y='Product Count', text='Product Count',
-                color_discrete_sequence=['#10B981'],
-                title="Products with Minimum Warranty Review Count"
-            )
-            fig_c2.update_traces(textposition='outside')
-            fig_c2.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font_color='white')
-            st.plotly_chart(fig_c2, use_container_width=True)
+        st.markdown("### 📋 Classification Report")
+        hmm_report = pd.DataFrame({
+            'Class': ['Negative (1-3)', 'Positive (4-5)'],
+            'Precision': [0.87, 0.83],
+            'Recall': [0.82, 0.87],
+            'F1-Score': [0.84, 0.85],
+            'Support': [3000, 3000]
+        })
+        st.dataframe(hmm_report, use_container_width=True, hide_index=True)
 
-            st.markdown("""
-            <div class="glass-card" style="direction: rtl; text-align: right;">
-                <b>📌 Chart 2 Analysis:</b> ۱۰,۰۵۰ محصول حداقل ۱ نظر گارانتی دارند، اما تنها ۱۷۵ محصول دارای حداقل ۱۰ نظر گارانتی هستند.
-            </div>
-            """, unsafe_allow_html=True)
-
-        st.markdown("<br>", unsafe_allow_html=True)
-
-        col_nlp3, col_nlp4 = st.columns(2)
-
-        with col_nlp3:
-            st.subheader("⭐ Chart 3: Rating Distribution")
-            df_dist = pd.DataFrame(list(data['nlp_dist'].items()), columns=['Rating', 'Percentage'])
-            fig_c3 = px.bar(
-                df_dist, x='Rating', y='Percentage', text='Percentage',
-                color='Rating', color_discrete_sequence=['#EF4444', '#F59E0B', '#FACC15', '#06B6D4', '#10B981'],
-                title="Rating Distribution in Warranty Reviews"
-            )
-            fig_c3.update_traces(texttemplate='%{text}%', textposition='outside')
-            fig_c3.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font_color='white')
-            st.plotly_chart(fig_c3, use_container_width=True)
-
-            st.markdown("""
-            <div class="glass-card" style="direction: rtl; text-align: right;">
-                <b>📌 Chart 3 Analysis:</b> توزیع امتیازها دوقطبی است؛ ۳۷.۱٪ نظرات ۵ ستاره و ۲۸.۵٪ نظرات ۱ ستاره هستند.
-            </div>
-            """, unsafe_allow_html=True)
-
-        with col_nlp4:
-            st.subheader("📉 Chart 4: Dispersion vs Review Volume")
-            np.random.seed(42)
-            review_counts = np.exp(np.random.uniform(0, 4, 120))
-            ratings = np.clip(3.19 + np.random.normal(0, 1.2 / np.sqrt(np.log1p(review_counts)), 120), 1, 5)
-
-            df_disp = pd.DataFrame({'Log Reviews': np.log1p(review_counts), 'Mean Rating': ratings})
-            fig_c4 = px.scatter(
-                df_disp, x='Log Reviews', y='Mean Rating',
-                title="Higher Rating Dispersion for Products with Fewer Reviews",
-                color_discrete_sequence=['#38BDF8']
-            )
-            fig_c4.add_hline(y=3.19, line_dash="dash", line_color="#EF4444", annotation_text="Overall Mean (3.19)")
-            fig_c4.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font_color='white')
-            st.plotly_chart(fig_c4, use_container_width=True)
-
-        st.markdown("<br>", unsafe_allow_html=True)
-        st.subheader("🏆 Chart 5: Top & Bottom Rated Products by Warranty")
-
-        df_top = pd.DataFrame(list(data['top_products'].items()), columns=['Product', 'Rating'])
-        df_top['Category'] = 'Best Rated (بهترین‌ها)'
-
-        df_bot = pd.DataFrame(list(data['bottom_products'].items()), columns=['Product', 'Rating'])
-        df_bot['Category'] = 'Worst Rated (بدترین‌ها)'
-
-        df_combined = pd.concat([df_top, df_bot]).sort_values(by='Rating')
-
-        fig_c5 = px.bar(
-            df_combined, y='Product', x='Rating', color='Category', orientation='h',
-            color_discrete_map={'Best Rated (بهترین‌ها)': '#10B981', 'Worst Rated (بدترین‌ها)': '#EF4444'},
-            title="Top and Bottom Rated Products by Warranty Review Score"
-        )
-        fig_c5.update_layout(height=600, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font_color='white')
-        st.plotly_chart(fig_c5, use_container_width=True)
+        st.markdown("""
+        <div class="glass-card" style="direction: rtl; text-align: right;">
+            <p style="font-size: 0.98rem; line-height: 1.8;">
+            <b>📌 Interpretation:</b>
+            کلاس Negative (۱-۳) و Positive (۴-۵) هر دو دقت مشابهی دارند.
+            مدل HMM به عنوان یک رویکرد ساده‌ی احتمالاتی، عملکرد قابل قبولی در تفکیک احساس نظرات دارد.
+            این نتیجه نشان می‌دهد که ویژگی‌های ترتیبی متن (توالی حالت‌ها) اطلاعات مفیدی برای تشخیص احساس حمل می‌کنند.
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
